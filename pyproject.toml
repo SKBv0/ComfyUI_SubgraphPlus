@@ -1,0 +1,8 @@
+[project]
+name = "comfyui-subgraphplus"
+description = "Open ComfyUI subgraph nodes in a live popup canvas."
+version = "0.1.0"
+
+[tool.comfy]
+DisplayName = "ComfyUI SubgraphPlus"
+Icon = ""
