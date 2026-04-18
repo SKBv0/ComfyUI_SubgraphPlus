@@ -552,6 +552,13 @@ function ensurePopupCanvasPatched(targetGC) {
     const oldCanvas = app.canvas;
     app.canvas = this;
     try {
+      if (primaryCanvas && primaryCanvas !== this) {
+        copyDefinedProps(this, primaryCanvas, POPUP_CONTEXT_PROPS);
+        this.render_widgets = true;
+        this.render_connections = true;
+        this.is_subgraph_canvas = true;
+        this.use_render_buffer = false;
+      }
       return state.origDraw.apply(this, arguments);
     } finally {
       app.canvas = oldCanvas;
@@ -727,6 +734,7 @@ function makeWindowResizable(entry) {
     (e, s) => {
       entry.root.style.width = `${Math.max(s.minW, Math.min(window.innerWidth - s.left - 10, s.w0 + (e.clientX - s.cx0)))}px`;
       entry.root.style.height = `${Math.max(s.minH, Math.min(window.innerHeight - s.top - 10, s.h0 + (e.clientY - s.cy0)))}px`;
+      syncCanvasSize(entry);
     },
     (e) => {
       entry.root.classList.add("subgraphplus-window--resizing");
@@ -772,7 +780,7 @@ function createPopupShell(nodeKey) {
   const statValue = mkEl("span", "subgraphplus-stat-value", statBadge);
 
   const actions = mkEl("div", "subgraphplus-actions", header);
-  const viewport = mkEl("div", "subgraphplus-viewport", body);
+  const viewport = mkEl("div", "subgraphplus-viewport", body, { dataset: { subgraphplusKey: nodeKey } });
   const canvasElement = mkEl("canvas", "subgraphplus-canvas", viewport, { tabIndex: 0 });
 
   actions.append(
@@ -887,6 +895,16 @@ app.registerExtension({
       }
       return res;
     };
+
+    const origTitleClick = node.onTitleButtonClick;
+    node.onTitleButtonClick = function(button) {
+      if (button?.name === "enter_subgraph" && isSubgraphNode(this)) {
+        openSubgraphPopup(this);
+        return;
+      }
+      return origTitleClick?.apply(this, arguments);
+    };
+
     node[NODE_INSTANCE_PATCH_FLAG] = true;
   },
 
